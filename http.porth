@@ -1,28 +1,5 @@
 include "std.porth"
 
-proc memmove
-  int // size
-  ptr // src
-  ptr // dst
-  --
-  ptr // dst
-in
-  memory src sizeof(ptr) end
-  memory dst sizeof(ptr) end
-  memory result sizeof(ptr) end
-  dst !64
-  src !64
-  dst @ptr swap // result
-  while dup 0 > do
-    src @ptr @8
-    dst @ptr !8
-    0 src @ptr !8 
-    src inc64
-    dst inc64
-    1 -
-  end drop
-end
-
 inline proc HTTP_OK
   int
 in
@@ -92,10 +69,18 @@ in
       "\n" puts
       route-size 1 <= if
         "index.html"c
-      else
-        // Move the 
-        route-size 1 - route 1 ptr+ route memmove
+      else 
         
+        route-size 1 -
+        route 1 ptr+
+        route-size tmp-alloc 
+        let new-size router-file-path file-path in
+          new-size 
+          router-file-path
+          file-path
+          memcpy
+          0 file-path new-size ptr+ !64
+        end
       end
     // End: Get File name from Route
 
@@ -147,6 +132,7 @@ in
         folderfd close drop
       end
     end
+    file-path tmp-clean drop
   end
   else
     "ERROR: The route must start with a slash!\n" eputs
