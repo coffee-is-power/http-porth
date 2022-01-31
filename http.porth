@@ -1,4 +1,136 @@
 include "std.porth"
+
+proc memmove
+  int // size
+  ptr // src
+  ptr // dst
+  --
+  ptr // dst
+in
+  memory src sizeof(ptr) end
+  memory dst sizeof(ptr) end
+  memory result sizeof(ptr) end
+  dst !64
+  src !64
+  dst @ptr swap // result
+  while dup 0 > do
+    src @ptr @8
+    dst @ptr !8
+    0 src @ptr !8 
+    src inc64
+    dst inc64
+    1 -
+  end drop
+end
+
+inline proc HTTP_OK
+  int
+in
+  let connfd in
+    "HTTP/1.1 200 OK\r\n" connfd fputs
+    "Server: http-porth\r\n" connfd fputs
+    "Content-Type: text/html\r\n" connfd fputs
+    "Connection: Closed\r\n" connfd fputs
+    "\r\n" connfd fputs
+  end
+end
+
+inline proc HTTP_INVALID_REQUEST
+  int
+in
+  let connfd in
+    "HTTP/1.1 400 Invalid Request\r\n" connfd fputs
+    "Server: http-porth\r\n" connfd fputs
+    "Content-Type: text/html\r\n" connfd fputs
+    "Connection: Closed\r\n" connfd fputs
+    "\r\n" connfd fputs
+    "<h1>400 Invalid Request</h1>" connfd fputs
+  end
+end
+inline proc HTTP_NOT_FOUND
+  int
+in
+  let connfd in
+    "HTTP/1.1 404 Not Found\r\n" connfd fputs
+    "Server: http-porth\r\n" connfd fputs
+    "Content-Type: text/html\r\n" connfd fputs
+    "Connection: Closed\r\n" connfd fputs
+    "\r\n" connfd fputs
+    "Could not find the page you're looking for..." connfd fputs
+  end
+end
+// Wrapper for open syscall
+inline proc open int int ptr -- int in
+  SYS_open syscall3
+end
+inline proc HTTP_INTERNAL_ERROR int in
+
+  let connfd in
+    "HTTP/1.1 500 Internal Server Error\r\n" connfd fputs
+    "Server: http-porth\r\n" connfd fputs
+    "Content-Type: text/html\r\n" connfd fputs
+    "Connection: Closed\r\n" connfd fputs
+    "\r\n" connfd fputs
+    "<h1>500 Internal Server Error</h1>" connfd fputs
+  end
+end
+proc http::static 
+  int ptr // Route
+  int // connfd
+  ptr // folder
+in
+  let 
+  route-size route 
+  confd folder-path in
+    // Start: Get File name from route
+      "Serving " puts
+      route-size route puts
+      "\n" puts
+      route-size 1 <= if
+        "index.html"c
+      else
+        // Move the 
+        route-size 1 - route 1 ptr+ route memmove
+        
+      end
+    // End: Get File name from Route
+
+    // Start: Open Folder
+      0
+      O_RDONLY // flags
+      folder-path // Folder path
+      open
+    // End: Open folder
+    // Returns: fd
+    confd
+  end
+  let 
+  file-path 
+  folderfd 
+  connfd
+  in
+
+    folderfd 0 < if
+      connfd HTTP_INTERNAL_ERROR
+    else
+      memory n sizeof(u64) end
+      memory buf 4096 end
+      0 O_RDONLY file-path folderfd openat
+      let filefd in
+        filefd 0 < if
+          connfd HTTP_NOT_FOUND
+        else
+          connfd HTTP_OK
+          while 4096 buf filefd read n !64 n @64 0 > do 
+            n @64 buf connfd fputs
+          end
+          filefd close drop
+        end
+        folderfd close drop
+      end
+    end
+  end
+end
 inline proc inet_addr int int int int -- int
 in
   let p1 p2 p3 p4 in
@@ -44,30 +176,6 @@ in
     end
   end
 end
-inline proc HTTP_OK
-  int
-in
-  let connfd in
-    "HTTP/1.1 200 OK\r\n" connfd fputs
-    "Server: http-porth\r\n" connfd fputs
-    "Content-Type: text/html\r\n" connfd fputs
-    "Connection: Closed\r\n" connfd fputs
-    "\r\n" connfd fputs
-  end
-end
-
-inline proc HTTP_NOT_FOUND
-  int
-in
-  let connfd in
-    "HTTP/1.1 404 Not Found\r\n" connfd fputs
-    "Server: http-porth\r\n" connfd fputs
-    "Content-Type: text/html\r\n" connfd fputs
-    "Connection: Closed\r\n" connfd fputs
-    "\r\n" connfd fputs
-    "Could not find the page you're looking for..." connfd fputs
-  end
-end
 proc handle_http_request
   int ptr // Route
   int // connfd
@@ -98,8 +206,13 @@ proc _handle_connection int addr in
       let n s _ _ in n s end
       ' ' str-chop-by-delim-2
       let _ _ n s in n s end
-      connfd
-      handle_request call-like handle_http_request
+      over 0 = if
+        connfd HTTP_INVALID_REQUEST
+        drop drop
+      else
+        connfd
+        handle_request call-like handle_http_request
+      end
     end
     connfd close drop
   end
@@ -116,7 +229,11 @@ proc http::listen addr int in
       memory cliaddr sizeof(sockaddr) end
       memory clilen sizeof(u32) end
       clilen cliaddr fd accept
-      handle_request _handle_connection
+      dup 0 >= if
+        handle_request _handle_connection
+      else
+        drop
+      end
     end
   end
 end

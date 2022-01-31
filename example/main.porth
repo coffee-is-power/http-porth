@@ -6,18 +6,9 @@ memory count sizeof(u64) end
 proc handle_request
   int ptr // Route
   int // connfd
-in 
+in
   let route_size route fd in
-  route_size route "/" streq if
-    count inc64
-    fd HTTP_OK
-    "Hello World\r\n" fd fputs
-    "This page was accessed " fd fputs
-    count @64 fd fputu
-    " times.\r\n" fd fputs
-    else
-      fd HTTP_NOT_FOUND
-    end
+    route_size route fd "./public"c http::static
   end
 end
 proc main in
