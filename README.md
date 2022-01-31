@@ -45,7 +45,20 @@ proc handle_request
   int // Client File Descriptor 
 in 
   let route_size route fd in
-    route_size route fd "./public"c http::static
+    true // Should send http headers?
+    route_size route // Route
+    fd // Connection File Descriptor
+    "./public"c // the folder that contains the files, must be a null-terminated string
+    http::static
+
+    // You can send multiple files, because http::static doesn't close the connection
+    // Example: Send footer
+    // Check if its an .html file so it doesn't break non-html files
+    5 route route_size 5 - dup 0 < if drop drop drop route_size route "/" streq else ptr+ ".html" streq end 
+    if
+      // Send the footer file, without headers
+      false "/footer.html" fd "./"c http::static
+    end
   end
 end
 

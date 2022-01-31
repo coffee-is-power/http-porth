@@ -8,7 +8,10 @@ proc handle_request
   int // connfd
 in
   let route_size route fd in
-    route_size route fd "./public"c http::static
+    true route_size route fd "./public"c http::static
+    5 route route_size 5 - dup 0 < if drop drop drop route_size route "/" streq else ptr+ ".html" streq end if
+      false "/footer.html" fd "./"c http::static
+    end
   end
 end
 proc main in

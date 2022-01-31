@@ -75,11 +75,13 @@ inline proc HTTP_INTERNAL_ERROR int in
   end
 end
 proc http::static 
+  bool // Send Headers
   int ptr // Route
   int // connfd
   ptr // folder
 in
   let 
+  send-headers
   route-size route 
   confd folder-path in
     // Start: Get File name from route
@@ -103,24 +105,38 @@ in
     // End: Open folder
     // Returns: fd
     confd
+    send-headers
   end
   let 
   file-path 
   folderfd 
   connfd
+  send-headers
   in
 
     folderfd 0 < if
-      connfd HTTP_INTERNAL_ERROR
+      send-headers if
+        connfd HTTP_INTERNAL_ERROR
+      else
+        "<h1>500 Internal Server Error</h1>" connfd fputs
+      end
     else
       memory n sizeof(u64) end
       memory buf 4096 end
       0 O_RDONLY file-path folderfd openat
       let filefd in
         filefd 0 < if
-          connfd HTTP_NOT_FOUND
+          send-headers if
+            connfd HTTP_NOT_FOUND
+          else
+            "Could not find /" connfd fputs
+            file-path cstr-to-str connfd fputs
+            "<br>\r\n" connfd fputs
+          end
         else
-          connfd HTTP_OK
+          send-headers if
+            connfd HTTP_OK
+          end
           while 4096 buf filefd read n !64 n @64 0 > do 
             n @64 buf connfd fputs
           end
@@ -130,6 +146,9 @@ in
       end
     end
   end
+  else
+    "ERROR: The route must start with a slash!\n" eputs
+    drop drop drop drop drop
 end
 inline proc inet_addr int int int int -- int
 in
