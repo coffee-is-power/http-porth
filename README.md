@@ -34,9 +34,9 @@ proc main in
   http::listen // Starts listening to connections
 end
 ```
-You can also serve static files if you need to:
+## You can also serve static files if you need to:
 
-main.porth:
+### main.porth:
 ```
 .......
 
@@ -64,7 +64,15 @@ end
 
 .....
 ```
-public/index.html:
+### public/index.html:
 ```html
 <h1>Hello from porth!</h1>
 ```
+### footer.html:
+```html
+<footer>This is a footer</footer>
+```
+
+### Result:
+<h1>Hello from porth!</h1>
+<footer>This is a footer</footer>
