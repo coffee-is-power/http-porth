@@ -80,6 +80,8 @@ proc http::static
   int // connfd
   ptr // folder
 in
+  peek route _ _ in route @8 dup putch " : char\n" puts end 47 = if
+
   let 
   send-headers
   route-size route 
@@ -149,6 +151,7 @@ in
   else
     "ERROR: The route must start with a slash!\n" eputs
     drop drop drop drop drop
+  end
 end
 inline proc inet_addr int int int int -- int
 in
