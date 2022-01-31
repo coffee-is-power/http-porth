@@ -34,3 +34,24 @@ proc main in
   http::listen // Starts listening to connections
 end
 ```
+You can also serve static files if you need to:
+
+main.porth:
+```
+.......
+
+proc handle_request
+  int ptr // Route
+  int // Client File Descriptor 
+in 
+  let route_size route fd in
+    route_size route fd "./public"c http::static
+  end
+end
+
+.....
+```
+public/index.html:
+```html
+<h1>Hello from porth!</h1>
+```
