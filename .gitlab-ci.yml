@@ -1,0 +1,9 @@
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+image: guitmz/fasm
+compile:
+  script:
+    - apk add bash
+    - chmod +x bootstrap
+    - chmod +x compile
+    - bash -c "./bootstrap"
