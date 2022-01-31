@@ -229,7 +229,7 @@ proc http::listen addr int in
       memory cliaddr sizeof(sockaddr) end
       memory clilen sizeof(u32) end
       clilen cliaddr fd accept
-      dup 0 >= if
+      dup 0 > if
         handle_request _handle_connection
       else
         drop
