@@ -1,0 +1,26 @@
+include "std.porth"
+include "../http.porth"
+
+memory count sizeof(u64) end
+
+proc handle_request
+  int ptr // Route
+  int // connfd
+in 
+  let route_size route fd in
+  route_size route "/" streq if
+    count inc64
+    fd HTTP_OK
+    "Hello World\r\n" fd fputs
+    "This page was accessed " fd fputs
+    count @64 fd fputu
+    " times.\r\n" fd fputs
+    else
+      fd HTTP_NOT_FOUND
+    end
+  end
+end
+proc main in
+  0 0 0 0 3000 http::create_server
+  addr-of handle_request swap http::listen
+end

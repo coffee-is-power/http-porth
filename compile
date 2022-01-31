@@ -1,0 +1,6 @@
+#!/bin/bash
+
+cd porth
+for i in ../example/*.porth ; do
+  ./porth com $i
+done

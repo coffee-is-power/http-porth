@@ -1,0 +1,10 @@
+#!/bin/bash
+echo "Bootstrapping porth..."
+cd porth
+fasm -m 524288 ./bootstrap/porth-linux-x86_64.fasm
+chmod +x ./bootstrap/porth-linux-x86_64
+./bootstrap/porth-linux-x86_64 com ./porth.porth
+./porth com porth.porth
+echo "Done bootstraping porth!"
+cd ..
+./compile

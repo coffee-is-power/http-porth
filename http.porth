@@ -1,0 +1,122 @@
+include "std.porth"
+inline proc inet_addr int int int int -- int
+in
+  let p1 p2 p3 p4 in
+    p4 24 shl
+    p3 16 shl or
+    p2 8 shl or
+    p1 or
+  end
+end
+const CLIENT_BUF_CAP 1024 end
+const _CONNECTIONS_QUEUE_SIZE 5 end
+
+proc http::create_socket -- 
+int // File Descriptor
+in
+  0 SOCK_STREAM AF_INET socket
+end
+
+// Returns a brand new ready-to-listen socket
+proc http::create_server 
+int int int int // IP
+int // Port 
+--
+int // File Descriptor
+in
+  memory servaddr sizeof(sockaddr) end
+  sizeof(sockaddr) 0 servaddr memset drop
+  let ip1 ip2 ip3 ip4 port in 
+    http::create_socket
+    peek fd in 
+      fd 0 < if
+        "ERROR: Couldn't create a socket\n" eputs
+        1 exit
+      end
+
+      AF_INET      servaddr sockaddr_in.sin_family ptr+ !16 
+      ip1 ip2 ip3 ip4 inet_addr servaddr sockaddr_in.sin_addr ptr+ !32
+      port htons   servaddr sockaddr_in.sin_port ptr+ !16
+      sizeof(sockaddr) servaddr fd bind 0 < if
+        "ERROR: could not bind the socket\n" eputs
+        1 exit
+      end
+    end
+  end
+end
+inline proc HTTP_OK
+  int
+in
+  let connfd in
+    "HTTP/1.1 200 OK\r\n" connfd fputs
+    "Server: http-porth\r\n" connfd fputs
+    "Content-Type: text/html\r\n" connfd fputs
+    "Connection: Closed\r\n" connfd fputs
+    "\r\n" connfd fputs
+  end
+end
+
+inline proc HTTP_NOT_FOUND
+  int
+in
+  let connfd in
+    "HTTP/1.1 404 Not Found\r\n" connfd fputs
+    "Server: http-porth\r\n" connfd fputs
+    "Content-Type: text/html\r\n" connfd fputs
+    "Connection: Closed\r\n" connfd fputs
+    "\r\n" connfd fputs
+    "Could not find the page you're looking for..." connfd fputs
+  end
+end
+proc handle_http_request
+  int ptr // Route
+  int // connfd
+in 
+  let n s fd in
+    n s puts "\n" puts
+    n s "/" streq if
+      fd HTTP_OK
+      "<h1>Hello World!</h1>" fd fputs
+    else
+      fd HTTP_NOT_FOUND
+    end
+  end
+end
+proc _handle_connection int addr in
+  "Connection received\n" puts
+  memory client_buf CLIENT_BUF_CAP end
+  let connfd handle_request in 
+
+    CLIENT_BUF_CAP client_buf connfd read
+    dup 0 < if
+      "ERROR: could not read the client request\n" puts
+      drop
+    else
+      client_buf '\n' str-chop-by-delim-2
+      let _ _ n s in n s end
+      ' ' str-chop-by-delim-2
+      let n s _ _ in n s end
+      ' ' str-chop-by-delim-2
+      let _ _ n s in n s end
+      connfd
+      handle_request call-like handle_http_request
+    end
+    connfd close drop
+  end
+end
+
+proc http::listen addr int in
+  let handle_request fd in
+
+    _CONNECTIONS_QUEUE_SIZE fd listen 0 < if
+      "ERROR: Failed to listen for connections\n" eputs
+      1 exit
+    end
+    while true do
+      memory cliaddr sizeof(sockaddr) end
+      memory clilen sizeof(u32) end
+      clilen cliaddr fd accept
+      handle_request _handle_connection
+    end
+  end
+end
