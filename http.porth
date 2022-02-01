@@ -208,19 +208,21 @@ proc _handle_connection int addr in
       "ERROR: could not read the client request\n" puts
       drop
     else
-      client_buf '\n' str-chop-by-delim-2
-      let _ _ n s in n s end
-      ' ' str-chop-by-delim-2
-      let n s _ _ in n s end
-      ' ' str-chop-by-delim-2
-      let _ _ n s in n s end
-      over 0 = if
-        connfd HTTP_INVALID_REQUEST
-        drop drop
-      else
-        connfd
-        handle_request call-like handle_http_request
-      end
+      // This will fail if the size is 0, so we check if its greater
+      dup 0 > if
+        client_buf '\n' str-chop-by-delim-2
+        let _ _ n s in n s end
+        ' ' str-chop-by-delim-2
+        let n s _ _ in n s end
+        ' ' str-chop-by-delim-2
+        let _ _ n s in n s end
+        over 0 = if
+          connfd HTTP_INVALID_REQUEST
+          drop drop
+        else
+          connfd
+          handle_request call-like handle_http_request
+        end
     end
     connfd close drop
   end
